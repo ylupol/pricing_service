@@ -13,6 +13,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
@@ -127,7 +131,9 @@ public class ProductControllerTest
     public void createPriceForProduct() throws Exception
     {
         Product product = productRepository.save(new Product("Chair"));
-        Price price = new Price(product, 9.99, new Date());
+
+        OffsetDateTime newYorkTime = OffsetDateTime.now(ZoneId.of("America/New_York"));
+        Price price = new Price(product, 9.99, newYorkTime);
 
         mockMvc.perform(
                 post(PRODUCT_ENDPOINT + "/" + product.getId() + "/prices/")
@@ -140,13 +146,10 @@ public class ProductControllerTest
     {
         Product product = productRepository.save(new Product("Chair"));
         Price price1 = priceRepository
-                .save(new Price(product, 9.99, new GregorianCalendar(2015,
-                        Calendar.MARCH, 22).getTime()));
+                .save(new Price(product, 9.99, OffsetDateTime.now(ZoneId.of("UTC")).minusMonths(1)));
         Price price2 = priceRepository.save(new Price(product, 5.99,
-                new GregorianCalendar(2016, Calendar.JULY, 4).getTime()));
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-        String price1ExpectedDateString = dateFormat.format(price1.getDate());
-        String price2ExpectedDateString = dateFormat.format(price2.getDate());
+                OffsetDateTime.now(ZoneId.of("UTC")).minusMonths(4)));
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss Z");
 
 
         mockMvc.perform(
@@ -155,10 +158,10 @@ public class ProductControllerTest
                 .andExpect(jsonPath("$", hasSize(2)))
                 .andExpect(jsonPath("$[0].id", is(price1.getId().intValue())))
                 .andExpect(jsonPath("$[0].price", is(price1.getPrice())))
-//                .andExpect(jsonPath("$[0].date", is(price1ExpectedDateString))) //TODO fix date deserialization
+                .andExpect(jsonPath("$[0].date", is(formatter.format(price1.getDate()))))
                 .andExpect(jsonPath("$[1].id", is(price2.getId().intValue())))
-                .andExpect(jsonPath("$[1].price", is(price2.getPrice())));
-//                .andExpect(jsonPath("$[1].date", is(price2ExpectedDateString))); //TODO fix date deserialization
+                .andExpect(jsonPath("$[1].price", is(price2.getPrice())))
+                .andExpect(jsonPath("$[1].date", is(formatter.format(price2.getDate()))));
     }
 
     private String json(Object o) throws IOException

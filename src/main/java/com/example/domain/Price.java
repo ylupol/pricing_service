@@ -1,14 +1,17 @@
 package com.example.domain;
 
-import java.util.Date;
+import java.time.OffsetDateTime;
 
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.ManyToOne;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
+import com.example.service.CustomOffsetDateTimeDeserializer;
+import com.example.service.CustomOffsetDateTimeSerializer;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 @Entity
 public class Price
@@ -21,8 +24,9 @@ public class Price
     @ManyToOne
     private Product product;
 
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss", timezone = "GMT")
-    private Date date;
+    @JsonSerialize(using = CustomOffsetDateTimeSerializer.class)
+    @JsonDeserialize(using = CustomOffsetDateTimeDeserializer.class)
+    private OffsetDateTime date;
 
     private double price;
 
@@ -30,7 +34,7 @@ public class Price
     {
     }
 
-    public Price(Product product, double price, Date date)
+    public Price(Product product, double price, OffsetDateTime date)
     {
         this.product = product;
         this.date = date;
@@ -47,7 +51,7 @@ public class Price
         return product;
     }
 
-    public Date getDate()
+    public OffsetDateTime getDate()
     {
         return date;
     }

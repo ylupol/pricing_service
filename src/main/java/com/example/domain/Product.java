@@ -1,5 +1,7 @@
 package com.example.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.util.Set;
 
 import javax.persistence.Entity;
@@ -16,6 +18,7 @@ public class Product
 
     private String name;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "product")
     private Set<Price> prices;
 
