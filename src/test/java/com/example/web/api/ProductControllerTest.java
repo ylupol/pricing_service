@@ -12,15 +12,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.text.SimpleDateFormat;
+import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.GregorianCalendar;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -46,6 +43,8 @@ import com.example.repository.ProductRepository;
 public class ProductControllerTest
 {
     public static final String PRODUCT_ENDPOINT = "/api/products";
+
+    public static final String DATE_FORMAT_PATTERN = "yyyy-MM-dd HH:mm:ss Z";
 
     @Autowired
     private MockMvc mockMvc;
@@ -132,36 +131,92 @@ public class ProductControllerTest
     {
         Product product = productRepository.save(new Product("Chair"));
 
-        OffsetDateTime newYorkTime = OffsetDateTime.now(ZoneId.of("America/New_York"));
+        OffsetDateTime newYorkTime = OffsetDateTime.now(ZoneId
+                .of("America/New_York"));
         Price price = new Price(product, 9.99, newYorkTime);
 
+        String jsonPrice = json(price);
+
         mockMvc.perform(
-                post(PRODUCT_ENDPOINT + "/" + product.getId() + "/prices/")
+                post(PRODUCT_ENDPOINT + "/" + product.getId() + "/prices")
+                        .contentType(contentType).content(jsonPrice))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    public void whenPriceWasCreatedWithParticularTimeZoneThenPriceShouldBeReturnedWithUTCDate()
+            throws Exception
+    {
+        Product product = productRepository.save(new Product("Chair"));
+
+        OffsetDateTime newYorkTime = OffsetDateTime.now(ZoneId
+                .of("America/New_York"));
+        ZonedDateTime utc = newYorkTime.atZoneSameInstant(ZoneId.of("UTC"));
+        DateTimeFormatter formatter = DateTimeFormatter
+                .ofPattern(DATE_FORMAT_PATTERN);
+
+        Price price = new Price(product, 3, newYorkTime);
+        mockMvc.perform(
+                post(PRODUCT_ENDPOINT + "/" + product.getId() + "/prices")
                         .contentType(contentType).content(json(price)))
                 .andExpect(status().isCreated());
+
+        mockMvc.perform(
+                get(PRODUCT_ENDPOINT + "/" + product.getId() + "/prices"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(contentType))
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].date", is(formatter.format(utc))));
+    }
+
+    @Test
+    public void shouldGetBadRequestErrorWhenCreatingProductWithoutName()
+            throws Exception
+    {
+        mockMvc.perform(
+                post(PRODUCT_ENDPOINT).contentType(contentType).content(
+                        json(new Product())))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void shouldGetBadRequestErrorWhenCreatingPriceWithoutDate()
+            throws Exception
+    {
+        Product product = productRepository.save(new Product("Chair"));
+
+        mockMvc.perform(
+                post(PRODUCT_ENDPOINT + "/" + product.getId() + "/prices")
+                        .contentType(contentType).content(json(new Price())))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
     public void readPricesForProduct() throws Exception
     {
         Product product = productRepository.save(new Product("Chair"));
-        Price price1 = priceRepository
-                .save(new Price(product, 9.99, OffsetDateTime.now(ZoneId.of("UTC")).minusMonths(1)));
+        Price price1 = priceRepository.save(new Price(product, 9.99,
+                OffsetDateTime.now(ZoneId.of("UTC")).minusMonths(1)));
         Price price2 = priceRepository.save(new Price(product, 5.99,
                 OffsetDateTime.now(ZoneId.of("UTC")).minusMonths(4)));
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss Z");
-
+        DateTimeFormatter formatter = DateTimeFormatter
+                .ofPattern("yyyy-MM-dd HH:mm:ss Z");
 
         mockMvc.perform(
                 get(PRODUCT_ENDPOINT + "/" + product.getId() + "/prices/")
-                        .contentType(contentType)).andExpect(status().isOk())
+                        .contentType(contentType))
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(2)))
                 .andExpect(jsonPath("$[0].id", is(price1.getId().intValue())))
                 .andExpect(jsonPath("$[0].price", is(price1.getPrice())))
-                .andExpect(jsonPath("$[0].date", is(formatter.format(price1.getDate()))))
+                .andExpect(
+                        jsonPath("$[0].date",
+                                is(formatter.format(price1.getDate()))))
                 .andExpect(jsonPath("$[1].id", is(price2.getId().intValue())))
                 .andExpect(jsonPath("$[1].price", is(price2.getPrice())))
-                .andExpect(jsonPath("$[1].date", is(formatter.format(price2.getDate()))));
+                .andExpect(
+                        jsonPath("$[1].date",
+                                is(formatter.format(price2.getDate()))));
     }
 
     private String json(Object o) throws IOException

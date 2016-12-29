@@ -1,5 +1,7 @@
 package com.example.web.api;
 
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
+
 import java.net.URI;
 import java.util.Collection;
 import java.util.Comparator;
@@ -8,6 +10,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,7 +23,7 @@ import com.example.domain.Product;
 import com.example.service.ProductService;
 
 @RestController
-@RequestMapping("/api/products")
+@RequestMapping(value = "/api/products", produces = APPLICATION_JSON_VALUE)
 public class ProductController
 {
     private ProductService productService;
@@ -44,7 +47,7 @@ public class ProductController
     }
 
     @RequestMapping(method = RequestMethod.POST)
-    public ResponseEntity createProduct(@RequestBody Product input)
+    public ResponseEntity createProduct(@Validated @RequestBody Product input)
     {
         Product saved = productService.save(new Product(input.getName()));
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
@@ -61,7 +64,7 @@ public class ProductController
 
     @RequestMapping(value = "/{productId}/prices", method = RequestMethod.POST)
     public ResponseEntity createPriceForProduct(@PathVariable Long productId,
-            @RequestBody Price price)
+            @Validated @RequestBody Price price)
     {
         return productService
                 .createPriceForProduct(productId, price)
@@ -72,7 +75,7 @@ public class ProductController
                             .buildAndExpand(createdPrice.getId()).toUri();
 
                     return ResponseEntity.created(location).build();
-                }).orElse(ResponseEntity.noContent().build());
+                }).orElse(ResponseEntity.badRequest().build());
     }
 
     @RequestMapping(value = "/{productId}/prices", method = RequestMethod.GET)

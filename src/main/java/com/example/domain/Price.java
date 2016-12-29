@@ -6,9 +6,10 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.ManyToOne;
+import javax.validation.constraints.NotNull;
 
-import com.example.service.CustomOffsetDateTimeDeserializer;
-import com.example.service.CustomOffsetDateTimeSerializer;
+import com.example.web.api.CustomOffsetDateTimeDeserializer;
+import com.example.web.api.CustomOffsetDateTimeSerializer;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -24,10 +25,12 @@ public class Price
     @ManyToOne
     private Product product;
 
+    @NotNull
     @JsonSerialize(using = CustomOffsetDateTimeSerializer.class)
     @JsonDeserialize(using = CustomOffsetDateTimeDeserializer.class)
     private OffsetDateTime date;
 
+    @NotNull
     private double price;
 
     public Price()

@@ -1,4 +1,4 @@
-package com.example.service;
+package com.example.web.api;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;

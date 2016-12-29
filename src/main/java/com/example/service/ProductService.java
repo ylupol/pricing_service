@@ -1,5 +1,7 @@
 package com.example.service;
 
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Optional;
@@ -49,9 +51,12 @@ public class ProductService
 
     public Optional<Price> createPriceForProduct(Long productId, Price price)
     {
+        OffsetDateTime utcDate = price.getDate()
+                .atZoneSameInstant(ZoneId.of("UTC")).toOffsetDateTime();
+
         return Optional.of(productRepository.findOne(productId)).map(
                 product -> priceRepository.save(new Price(product, price
-                        .getPrice(), price.getDate())));
+                        .getPrice(), utcDate)));
     }
 
     public Collection<Price> findPrices(Long productId)
